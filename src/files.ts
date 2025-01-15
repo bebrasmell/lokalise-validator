@@ -1,6 +1,8 @@
 import { readdir, stat } from "fs/promises";
 import { join } from "path";
 import { IGNORED_DIRS, SOURCE_MASKS } from "./consts";
+import type { Ora } from "ora";
+import chalk from "chalk";
 
 const _cache = new Map<string, string>();
 export async function checkFile(
@@ -47,6 +49,7 @@ export async function checkFiles(
 }
 
 export interface Context {
+  progress?: Ora;
   readonly keySets: { [depth: number]: Set<string> };
   readonly maxDepth: number;
   depth: number;
@@ -62,6 +65,13 @@ export async function execute(ctx: Context, files: string[]): Promise<void> {
     .filter((key) => key.length > 0);
 
   const nextKeyset = new Set<string>(keys);
+  if (nextKeyset.size === 0) return;
+
+  if (ctx.progress) {
+    const keyNum = chalk.yellow(nextKeyset.size);
+    ctx.progress.text = `Checking ${keyNum} keys at depth ${ctx.depth}`;
+  }
+
   await checkFiles(files, nextKeyset);
 
   ctx.depth += 1;

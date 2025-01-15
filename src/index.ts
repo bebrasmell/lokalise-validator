@@ -29,7 +29,6 @@ const flags = parseArgs({
     // Config options
     depth: {
       type: "string",
-      default: "2",
       short: "d",
     },
   },
@@ -49,11 +48,8 @@ if (!locale) {
 
 const outFilePath = flags.values.output!;
 
-let maxDepth = parseInt(flags.values.depth!);
-if (isNaN(maxDepth) || maxDepth < 0) {
-  logWarning("depth");
-  maxDepth = 2;
-}
+const maxDepth = parseInt(flags.values.depth ?? 'none') || Infinity;
+if (maxDepth === Infinity) console.log("Running at full depth");
 
 // Extract keys
 let progress = ora("Extracting keys...").start();
@@ -79,6 +75,7 @@ const files = await extractFiles(dir).catch((e) => {
 progress.text = `Checking ${files.length} files`;
 const ctx: Context = {
   keySets: { 0: keySet },
+  progress,
   maxDepth,
   depth: 0,
 };
