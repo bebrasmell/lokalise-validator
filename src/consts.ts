@@ -1,4 +1,8 @@
-export const SOURCE_MASKS = [/.*\.ts$/, /.*\.html$/];
+export const SOURCE_MASKS = [
+  /.*\.ts$/,
+  /^(?!.*\.d\.ts$).*\.ts$/,
+  /.*\.html$/
+];
 export const IGNORED_DIRS = new Set<string>([
   ".git",
   "node_modules",

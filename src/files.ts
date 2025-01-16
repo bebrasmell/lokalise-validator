@@ -3,20 +3,58 @@ import { join } from "path";
 import { IGNORED_DIRS, SOURCE_MASKS } from "./consts";
 import type { Ora } from "ora";
 import chalk from "chalk";
+import { hashContent } from "./file-hash";
+import type { iCache, iCacheRecord, StoreCache } from "./cache";
 
-const _cache = new Map<string, string>();
+const _memo = new Map<string, string>();
+
 export async function checkFile(
   path: string,
-  keys: Set<string>
+  keys: Set<string>,
+  cache?: StoreCache
 ): Promise<void> {
-  let content = _cache.get(path);
+  let content = _memo.get(path);
   if (!content) {
     content = await Bun.file(path).text();
-    _cache.set(path, content);
+    _memo.set(path, content);
   }
 
+  let record: iCacheRecord | undefined;
+  if (cache) {
+    const { cache: _cache } = cache;
+    const rPath = cache.relativePath(path);
+    const hash = hashContent(rPath + content);
+
+    record = _cache.get(rPath);
+    if (record) {
+      if (record.hash === hash && record.keys.size > 0) {
+        for (const key of keys) {
+          if (record.keys.has(key)) keys.delete(key);
+        }
+      } else {
+        record.keys.clear();
+        record.hash = hash;
+      }
+    } else {
+      record = {
+        hash: hash,
+        keys: new Set(),
+      };
+
+      _cache.set(rPath, record);
+    }
+  }
+
+  const found = new Set<string>();
   for (const key of keys) {
-    if (content.includes(key)) keys.delete(key);
+    if (content.includes(key)) {
+      keys.delete(key);
+      found.add(key);
+    }
+  }
+
+  if (record) {
+    for (const k of found) record.keys.add(k);
   }
 }
 
@@ -43,16 +81,19 @@ export async function extractFiles(dirPath: string): Promise<string[]> {
 
 export async function checkFiles(
   files: string[],
-  keys: Set<string>
+  keys: Set<string>,
+  cache?: StoreCache
 ): Promise<void> {
-  for (const file of files) await checkFile(file, keys);
+  for (const file of files) await checkFile(file, keys, cache);
 }
 
 export interface Context {
-  progress?: Ora;
   readonly keySets: { [depth: number]: Set<string> };
   readonly maxDepth: number;
   depth: number;
+
+  cache?: StoreCache;
+  progress?: Ora;
 }
 
 export async function execute(ctx: Context, files: string[]): Promise<void> {
@@ -72,7 +113,7 @@ export async function execute(ctx: Context, files: string[]): Promise<void> {
     ctx.progress.text = `Checking ${keyNum} keys at depth ${ctx.depth}`;
   }
 
-  await checkFiles(files, nextKeyset);
+  await checkFiles(files, nextKeyset, ctx.cache);
 
   ctx.depth += 1;
   ctx.keySets[ctx.depth] = nextKeyset;

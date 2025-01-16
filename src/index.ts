@@ -4,7 +4,8 @@ import { parseArgs } from "util";
 import { extractKeys } from "./extract-keys";
 import { execute, extractFiles, type Context } from "./files";
 import { genYamlReport } from "./gen-report";
-import { logError, logWarning } from "./errors";
+import { logError } from "./errors";
+import { StoreCache } from "./cache";
 
 const start_ts = performance.now();
 
@@ -31,6 +32,11 @@ const flags = parseArgs({
       type: "string",
       short: "d",
     },
+    noCache: {
+      type: "boolean",
+      short: "n",
+      default: true,
+    },
   },
   strict: true,
   allowPositionals: true,
@@ -48,9 +54,14 @@ if (!locale) {
 
 const outFilePath = flags.values.output!;
 
-const maxDepth = parseInt(flags.values.depth ?? 'none') || Infinity;
-if (maxDepth === Infinity) console.log("Running at full depth");
+const maxDepth = parseInt(flags.values.depth ?? "none") || Infinity;
+if (maxDepth === Infinity) {
+  console.log(chalk.gray("INFO"), "Running at full depth");
+}
 
+if (flags.values.noCache) {
+  console.log(chalk.gray("INFO"), "Cache is disabled");
+}
 // Extract keys
 let progress = ora("Extracting keys...").start();
 const [keys, { warnings }] = await extractKeys(locale, progress).catch((e) => {
@@ -72,16 +83,30 @@ const files = await extractFiles(dir).catch((e) => {
 });
 
 // Check files
+
+let cache: StoreCache | undefined = undefined;
+if (!flags.values.noCache) {
+  cache = new StoreCache(dir);
+  await cache.init();
+}
+
 progress.text = `Checking ${files.length} files`;
 const ctx: Context = {
   keySets: { 0: keySet },
   progress,
   maxDepth,
   depth: 0,
+  cache,
 };
 
 await execute(ctx, files);
 progress.succeed(`Checked ${files.length} files`);
+
+if (cache) {
+  progress = ora("Finalizing cache...").start();
+  await cache.finalize();
+  progress.succeed(`Cache saved at ${chalk.blue(cache.cachePath)}`);
+}
 
 // Report
 progress = ora("Generating report...").start();
