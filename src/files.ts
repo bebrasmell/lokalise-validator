@@ -115,9 +115,11 @@ export async function execute(ctx: Context, files: string[]): Promise<void> {
 
   await checkFiles(files, nextKeyset, ctx.cache);
 
+
+  if (nextKeyset.size === 0) return;
+
   ctx.depth += 1;
   ctx.keySets[ctx.depth] = nextKeyset;
-
   return execute(ctx, files);
 }
 
