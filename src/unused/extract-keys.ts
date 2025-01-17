@@ -1,4 +1,5 @@
 import type { Ora } from "ora";
+import type { LocaleField } from "../util/types/locale-file";
 
 interface Context {
   warnings: [string, string][];
@@ -16,12 +17,9 @@ export async function extractKeys(
   return [fromRecord(ctx, langRawJson, undefined), ctx];
 }
 
-type Field = string | LangJson | string[] | LangJson[];
-type LangJson = { [key: string]: Field };
-
 function fromRecord(
   ctx: Context,
-  record: Field | undefined,
+  record: LocaleField | undefined,
   path?: string
 ): string[] {
   if (!record) return [];

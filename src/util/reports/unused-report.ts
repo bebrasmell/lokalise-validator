@@ -1,9 +1,8 @@
-import type { Context } from "./files";
-
-const pad = (depth: number): string => "  ".repeat(depth);
+import type { Context } from "../../unused/files";
+import { pad } from "./pad";
 
 type Entry = [string, Set<string>];
-export function genYamlReport(
+export function genUnusedYamlReport(
   src: Context | Entry[],
   warnings: [string, string][]
 ): string {
@@ -15,8 +14,8 @@ export function genYamlReport(
     entries.shift();
   }
 
-  let report = "";
-  report += `timestamp: ${Date.now()}\n`;
+  let report = "unused:\n";
+  report += `${pad(1)}total: ${entries[0][1].size}\n`;
 
   const warningsMap = new Map<string, string[]>();
   for (const [type, path] of warnings) {
@@ -28,28 +27,26 @@ export function genYamlReport(
   }
 
   if (warningsMap.size) {
-    report += `\nwarnings:\n`;
+    report += `\n${pad(1)}warnings:\n`;
     for (const key of warningsMap.keys()) {
-      report += `${pad(1)}- ${key}:\n`;
-      report += `${pad(2)}paths:\n`;
+      report += `${pad(2)}- ${key}:\n`;
+      report += `${pad(3)}paths:\n`;
       for (const path of warningsMap.get(key)!) {
-        report += `${pad(3)}- ${path}\n`;
+        report += `${pad(4)}- ${path}\n`;
       }
     }
   }
 
-  report += `\ntotal: ${entries[0][1].size}\n`;
-
-  report += `results:\n`;
+  report += `${pad(1)}results:\n`;
   for (const [dStr, keys] of entries) {
     const depth = parseInt(dStr) - 1;
 
-    report += `${pad(1)}- depth: ${depth}\n`;
-    report += `${pad(2)}keys:\n`;
+    report += `${pad(2)}- depth: ${depth}\n`;
+    report += `${pad(3)}keys:\n`;
 
     for (let key of keys) {
       for (let i = 0; i < depth; i++) key += ".*";
-      report += `${pad(3)}- ${key}\n`;
+      report += `${pad(4)}- ${key}\n`;
     }
   }
 

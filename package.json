@@ -9,7 +9,8 @@
   },
   "type": "module",
   "scripts": {
-    "unused": "bun src/index.ts"
+    "unused": "bun src/unused/index.ts",
+    "no-locale": "bun src/no-locale/index.ts"
   },
   "dependencies": {
     "chalk": "^5.4.1",

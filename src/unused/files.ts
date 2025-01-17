@@ -3,8 +3,8 @@ import { join } from "path";
 import { IGNORED_DIRS, SOURCE_MASKS } from "./consts";
 import type { Ora } from "ora";
 import chalk from "chalk";
-import { hashContent } from "./file-hash";
-import type { iCache, iCacheRecord, StoreCache } from "./cache";
+import type { iCacheRecord, StoreCache } from "./cache";
+import { hashContent } from "../util/hash/file-hash";
 
 const _memo = new Map<string, string>();
 
@@ -114,7 +114,6 @@ export async function execute(ctx: Context, files: string[]): Promise<void> {
   }
 
   await checkFiles(files, nextKeyset, ctx.cache);
-
 
   if (nextKeyset.size === 0) return;
 
